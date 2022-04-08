@@ -7,11 +7,15 @@
 
 <script>
 import HelloWorld from './components/HelloWorld.vue'
-
+import mixinTest from './mixin'
 export default {
   name: 'App',
+  mixins: [mixinTest],
   components: {
     HelloWorld
+  },
+  created() {
+    console.log('App.vue')
   }
 }
 </script>
