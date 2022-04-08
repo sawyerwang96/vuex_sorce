@@ -1,7 +1,9 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+    <div>a: {{ $store.state.a }}</div>
+    <div>name: {{ $store.state.name }}</div>
+    <div>age: {{ $store.getters.getAge }}</div>
+    <button @click="$store.state.a += 10">add</button>
   </div>
 </template>
 
