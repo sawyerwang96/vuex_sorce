@@ -29,16 +29,20 @@ export default new Vuex.Store({
   },
   modules: {
     a: {
+      namespaced: true,
       state: {
         a1: 1,
         a2: 2
       },
       modules: {
-        AA: {},
+        AA: {
+          namespaced: true
+        },
         AB: {}
       }
     },
     b: {
+      namespaced: true,
       state: {
         b1: 11,
         b2: 12

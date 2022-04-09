@@ -7,7 +7,11 @@ export default class Module {
     this.state = rootModule.state
   }
 
-  getChildren(key) {
+  get namespaced() {
+    return this._rowModule.namespaced
+  }
+
+  getChild(key) {
     return this._children[key]
   }
 

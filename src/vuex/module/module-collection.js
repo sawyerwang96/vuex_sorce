@@ -21,7 +21,7 @@ export default class ModuleCollection {
     } else {
       let parent = path.slice(0, -1).reduce((memo, current) => {
         // return memo._children[current]
-        return memo.getChildren(current)
+        return memo.getChild(current)
       }, this.root)
 
       // parent._children[path[path.length - 1]] = newModule
@@ -34,6 +34,15 @@ export default class ModuleCollection {
         this.register([...path, moduleName], module)
       })
     }
+  }
+
+  getNamespace(path) {
+    let root = this.root
+    console.log(root)
+    return path.reduce((namespace, key) => {
+      root = root.getChild(key)
+      return `${namespace}${root.namespaced ? (key + '/') : ''}`
+    }, '')
   }
 }
 

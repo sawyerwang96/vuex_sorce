@@ -5,6 +5,11 @@ let Vue
 
 
 function installModule(store, rootState, path, module) {
+   // 注册事件时 需要注册对应的命名空间中 path就是所有的路径 根据path算出一个空间来
+  console.log('store', store._modules); 
+  let namespace = store._modules.getNamespace(path)
+  console.log(namespace)
+
   if (path.length) { // 子模块
     // 将子模块的状态定到跟模块上
     let parent = path.slice(0, -1).reduce((memo, current) => {
@@ -14,29 +19,30 @@ function installModule(store, rootState, path, module) {
     // Vue.set() 可以新增属性 如果本身不是响应式会直接复制
     // Vue.set会区分是否是响应式数据
     Vue.set(parent, path[path.length - 1], module.state)
+    console.log('parent', parent)
   }
 
   module.forEachGetters((getter, key) => {
     // 所有模块的getter都会添加到跟模块上，重名会覆盖
-    return store._wrappedGetters[key] = function () {
+    return store._wrappedGetters[namespace + key] = function () {
       return getter(module.state)
     }
   })
 
   module.forEachMutations((mutation, type) => {
-    if (!store._mutations[type]) {
-      store._mutations[type] = []
+    if (!store._mutations[namespace + type]) {
+      store._mutations[namespace + type] = []
     }
-    store._mutations[type].push((payload) => {
+    store._mutations[namespace + type].push((payload) => {
       mutation.call(store, module.state, payload)
     })
   })
 
   module.forEachActions((action, type) => {
-    if (!store._actions[type]) {
-      store._actions[type] = []
+    if (!store._actions[namespace + type]) {
+      store._actions[namespace + type] = []
     }
-    store._actions[type].push((payload) => {
+    store._actions[namespace + type].push((payload) => {
       action.call(store, store, payload)
     })
   })
@@ -76,17 +82,17 @@ class Store {
     // 一、收集模块（转换成树）
     // 格式化用户传入参数
     // 格式化成树形结构 直观好操作
-    this._moudles = new ModuleCollection(options)
-    console.log(this._moudles)
+    this._modules = new ModuleCollection(options)
+    console.log(this._modules)
 
     // 安装模块 将模块上的属性 定义在store中
-    let state = this._moudles.root.state
+    let state = this._modules.root.state
 
     this._mutations = {} // 存放所有模块中的mutations
     this._actions = {} // 存放所有模块中的actions
     this._wrappedGetters = {} // 存放所有模块中的getters
-    installModule(this, state, [], this._moudles.root)
-
+    installModule(this, state, [], this._modules.root)
+    console.log(state);
     // 将状态加入到Vue实例中
     resetStoreVm(this, state)
   }
