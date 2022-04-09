@@ -54,6 +54,7 @@ function installModule(store, rootState, path, module) {
 
 function resetStoreVm(store, state) {
   const _wrappedGetters = store._wrappedGetters
+  let oldVm = store._vm
   let computed = {}
   store.getters = {}
 
@@ -75,6 +76,10 @@ function resetStoreVm(store, state) {
     },
     computed
   })
+
+  if (oldVm) {
+    Vue.nextTick(() => oldVm.$destroy())
+  }
 }
 
 class Store {
@@ -107,6 +112,22 @@ class Store {
 
   get state() {
     return this._vm._data.$$state
+  }
+
+  registerModule(path, rawModule) {
+    if (typeof path === 'string') {
+      path = [path]
+    }
+
+    // 注册模块
+    this._modules.register(path, rawModule)
+
+    // 安装模块 动态将状态新增上去
+    installModule(this, this.state, path, rawModule.rawModule)
+
+    // 将getters映射到了wrappedGetters上了，并没有映射到store上的getters
+    // 重新定义getters
+    resetStoreVm(this, this.state)
   }
 }
 

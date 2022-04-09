@@ -15,6 +15,7 @@ export default class ModuleCollection {
     //   _children: {}
     // }
     let newModule = new Module(rootModule)
+    rootModule.rawModule = newModule // 在当前要注册的模块上 做了一个映射
 
     if (0 == path.length) {
       this.root = newModule
