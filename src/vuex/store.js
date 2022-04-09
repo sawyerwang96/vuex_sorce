@@ -3,12 +3,70 @@ import ModuleCollection from './module/module-collection'
 import { forEach } from './util'
 let Vue
 
+
+function installModule(store, rootState, path, module) {
+  if (path.length) { // 子模块
+    // 将子模块的状态定到跟模块上
+    let parent = path.slice(0, -1).reduce((memo, current) => {
+      return memo[current]
+    }, rootState)
+
+    // Vue.set() 可以新增属性 如果本身不是响应式会直接复制
+    // Vue.set会区分是否是响应式数据
+    Vue.set(parent, path[path.length - 1], module.state)
+  }
+
+  module.forEachGetters((getter, key) => {
+    // 所有模块的getter都会添加到跟模块上，重名会覆盖
+    return store._wrappedGetters[key] = function (params) {
+      return getter(module.state)
+    }
+  })
+
+  module.forEachMutations((mutation, type) => {
+    if (!store._mutations[type]) {
+      store._mutations[type] = []
+    }
+    store._mutations[type].push((payload) => {
+      mutation.call(store, module.state, payload)
+    })
+  })
+
+  module.forEachActions((action, type) => {
+    if (!store._actions[type]) {
+      store._actions[type] = []
+    }
+    store._actions[type].push((payload) => {
+      action.call(store, store, payload)
+    })
+  })
+
+  module.forEachChildren((child, key) => {
+    installModule(store, rootState, [...path, key], child)
+  })
+}
+
 class Store {
   constructor(options) {
+    // 一、收集模块（转换成树）
     // 格式化用户传入参数
     // 格式化成树形结构 直观好操作
     this._moudles = new ModuleCollection(options)
-    console.log(this._moudles);
+    console.log(this._moudles)
+
+    // 安装模块 将模块上的属性 定义在store中
+    let state = this._moudles.root.state
+
+    this._mutations = {} // 存放所有模块中的mutations
+    this._actions = {} // 存放所有模块中的actions
+    this._wrappedGetters = {} // 存放所有模块中的getters
+    installModule(this, state, [], this._moudles.root)
+
+    console.log(state)
+    console.log(this._moudles)
+    console.log(this._moudles)
+    console.log(this._actions)
+    console.log(this._wrappedGetters)
 
     // // options ==> new Vue.Store({})的{}
     // let { state, getters, mutations, actions } = options // 用户传递过来的
