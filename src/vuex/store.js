@@ -18,7 +18,7 @@ function installModule(store, rootState, path, module) {
 
   module.forEachGetters((getter, key) => {
     // 所有模块的getter都会添加到跟模块上，重名会覆盖
-    return store._wrappedGetters[key] = function (params) {
+    return store._wrappedGetters[key] = function () {
       return getter(module.state)
     }
   })
@@ -46,6 +46,31 @@ function installModule(store, rootState, path, module) {
   })
 }
 
+function resetStoreVm(store, state) {
+  const _wrappedGetters = store._wrappedGetters
+  let computed = {}
+  store.getters = {}
+
+  // 将getter定义在store上，使用计算属性实现缓存效果
+  forEach(_wrappedGetters, (fn, key) => {
+    computed[key] = function () {
+      return fn()
+    }
+
+    Object.defineProperty(store.getters, key, {
+      get: () => store._vm[key]
+    })
+  })
+
+  // 将状态变成响应式
+  store._vm = new Vue({
+    data: {
+      $$state: state
+    },
+    computed
+  })
+}
+
 class Store {
   constructor(options) {
     // 一、收集模块（转换成树）
@@ -62,13 +87,50 @@ class Store {
     this._wrappedGetters = {} // 存放所有模块中的getters
     installModule(this, state, [], this._moudles.root)
 
-    console.log(state)
-    console.log(this._moudles)
-    console.log(this._moudles)
-    console.log(this._actions)
-    console.log(this._wrappedGetters)
+    // 将状态加入到Vue实例中
+    resetStoreVm(this, state)
+  }
 
-    // // options ==> new Vue.Store({})的{}
+  commit = (type, payload) => {
+    this._mutations[type].forEach(fn => fn(payload))
+  }
+
+  dispatch = (type, payload) => {
+    this._actions[type].forEach(fn => fn((payload)))
+  }
+
+  get state() {
+    return this._vm._data.$$state
+  }
+}
+
+/**
+ * install的作用
+ * 注册全局组件
+ * 注册原型方法
+ * mixin => router实例绑定给所有的组件
+ * @param {*} _Vue 
+ */
+const install = (_Vue) => {
+  Vue = _Vue
+  console.log('install')
+  applyMxin(Vue)
+}
+
+export {
+  Store,
+  install
+}
+
+
+// 1. 默认模块没有 作用域问题
+// 2. 状态不要和模块的名称相同 （同名时模块会覆盖状态
+// 3. 默认计算属性 直接通过getters取值
+// 4. namespace: true 会将模块的属性 都封装到这个作用域下
+// 5. 默认会找当前当前模块上是否有namespace，并且将父级的namespace 一同算上，做成命名空间
+
+
+ // // options ==> new Vue.Store({})的{}
     // let { state, getters, mutations, actions } = options // 用户传递过来的
     
     // this.getters = {}
@@ -106,42 +168,3 @@ class Store {
     // forEach(actions, (fn, key) => {
     //   this._actions[key] = (payload) => fn.call(this, this, payload)
     // })
-  }
-
-  commit = (type, payload) => {
-    this._mutations[type](payload)
-  }
-
-  dispatch = (type, payload) => {
-    this._actions[type](payload)
-  }
-
-  get state() {
-    return this._vm._data.$$state
-  }
-}
-
-/**
- * install的作用
- * 注册全局组件
- * 注册原型方法
- * mixin => router实例绑定给所有的组件
- * @param {*} _Vue 
- */
-const install = (_Vue) => {
-  Vue = _Vue
-  console.log('install')
-  applyMxin(Vue)
-}
-
-export {
-  Store,
-  install
-}
-
-
-// 1. 默认模块没有 作用域问题
-// 2. 状态不要和模块的名称相同 （同名时模块会覆盖状态
-// 3. 默认计算属性 直接通过getters取值
-// 4. namespace: true 会将模块的属性 都封装到这个作用域下
-// 5. 默认会找当前当前模块上是否有namespace，并且将父级的namespace 一同算上，做成命名空间
