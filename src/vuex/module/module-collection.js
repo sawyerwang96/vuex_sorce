@@ -1,4 +1,5 @@
 import { forEach } from '../util'
+import Module from './module'
 
 export default class ModuleCollection {
   constructor(options) {
@@ -8,20 +9,23 @@ export default class ModuleCollection {
 
   // 和ast解析一样
   register(path, rootModule) {
-    let newModule = {
-      _row: rootModule,
-      state: rootModule.state,
-      _children: {}
-    }
+    // let newModule = {
+    //   _row: rootModule,
+    //   state: rootModule.state,
+    //   _children: {}
+    // }
+    let newModule = new Module(rootModule)
 
     if (0 == path.length) {
       this.root = newModule
     } else {
       let parent = path.slice(0, -1).reduce((memo, current) => {
-        return memo._children[current]
+        // return memo._children[current]
+        return memo.getChildren(current)
       }, this.root)
 
-      parent._children[path[path.length - 1]] = newModule
+      // parent._children[path[path.length - 1]] = newModule
+      parent.addChildren(path[path.length - 1], newModule)
     }
 
     if (rootModule.modules) {
