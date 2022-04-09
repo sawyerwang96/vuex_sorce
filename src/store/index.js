@@ -16,8 +16,16 @@ export default new Vuex.Store({
     }
   },
   mutations: {
+    changeAge(state, payload) {
+      state.age += payload
+    }
   },
   actions: {
+    changeAge({ state, commit }, payload) {
+      setTimeout(() => {
+        commit('changeAge', payload)
+      }, 1000)
+    }
   },
   modules: {
   }

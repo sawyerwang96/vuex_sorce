@@ -1,9 +1,9 @@
 <template>
   <div id="app">
-    <div>a: {{ $store.state.a }}</div>
     <div>name: {{ $store.state.name }}</div>
     <div>age: {{ $store.getters.getAge }}</div>
-    <button @click="$store.state.a += 10">add</button>
+    <button @click="$store.commit('changeAge', 3)">commit</button>
+    <button @click="$store.dispatch('changeAge', 10)">dispatch</button>
   </div>
 </template>
 
