@@ -15,7 +15,7 @@ export default class Module {
     return this._children[key]
   }
 
-  addChil(key, module) {
+  addChild(key, module) {
     this._children[key] = module
   }
 
