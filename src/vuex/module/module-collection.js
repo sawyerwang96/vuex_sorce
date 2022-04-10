@@ -9,11 +9,6 @@ export default class ModuleCollection {
 
   // 和ast解析一样
   register(path, rootModule) {
-    // let newModule = {
-    //   _row: rootModule,
-    //   state: rootModule.state,
-    //   _children: {}
-    // }
     let newModule = new Module(rootModule)
     rootModule.rawModule = newModule // 在当前要注册的模块上 做了一个映射
 
@@ -21,11 +16,9 @@ export default class ModuleCollection {
       this.root = newModule
     } else {
       let parent = path.slice(0, -1).reduce((memo, current) => {
-        // return memo._children[current]
         return memo.getChild(current)
       }, this.root)
 
-      // parent._children[path[path.length - 1]] = newModule
       parent.addChild(path[path.length - 1], newModule)
     }
 
@@ -46,20 +39,3 @@ export default class ModuleCollection {
     }, '')
   }
 }
-
-// 格式化树形结构
-// this.root = {
-//   _roe: 'xxx',
-//   state: {},
-//   _children: {
-//     a: {
-//       _row: 'xxx',
-//       state: {}
-//     },
-//     b: {
-//       _row: 'xxx',
-//       state: {},
-//       _children: {}
-//     }
-//   }
-// }
