@@ -10,7 +10,7 @@ function getNestedState(store, path) {
 }
 
 function installModule(store, rootState, path, module) {
-   // 注册事件时 需要注册对应的命名空间中 path就是所有的路径 根据path算出一个空间来
+  // 注册事件时 需要注册对应的命名空间中 path就是所有的路径 根据path算出一个空间来
   console.log('store', store._modules); 
   let namespace = store._modules.getNamespace(path)
   console.log(namespace)
@@ -23,7 +23,9 @@ function installModule(store, rootState, path, module) {
 
     // Vue.set() 可以新增属性 如果本身不是响应式会直接复制
     // Vue.set会区分是否是响应式数据
-    Vue.set(parent, path[path.length - 1], module.state)
+    store._withCommitting(() => {
+      Vue.set(parent, path[path.length - 1], module.state)
+    })
     console.log('parent', parent)
   }
 
@@ -42,7 +44,9 @@ function installModule(store, rootState, path, module) {
       // 内部可能会替换状态 如果一折使用module.state 就有可能老的状态
       // mutation.call(store, module.state, payload)
 
-      mutation.call(store, getNestedState(store, path), payload)
+      store._withCommitting(() => {
+        mutation.call(store, getNestedState(store, path), payload)
+      })
       
       // 调用订阅的事件
       store._subscribers.forEach(sub => sub({ mutation, type }, store.state))
@@ -88,6 +92,13 @@ function resetStoreVm(store, state) {
     computed
   })
 
+  if (store.strict) {
+    // 只要状态一变化就会立即执行，状态变化后同步执行
+    store._vm.$watch(() => store._vm._data.$$state, () => {
+      console.assert(store._committing, '在mutation以外更改了状态')
+    }, { deep: true, sync: true })
+  }
+
   if (oldVm) {
     Vue.nextTick(() => oldVm.$destroy())
   }
@@ -108,6 +119,11 @@ class Store {
     this._actions = {} // 存放所有模块中的actions
     this._wrappedGetters = {} // 存放所有模块中的getters
     this._subscribers = []
+
+    this.strict = options.strict // 是否开启严格模式（严格模式下只能通过提交mutation修改state，否则会报错）
+    this._committing = false // 同步监听
+
+
     installModule(this, state, [], this._modules.root)
     console.log(state);
     // 将状态加入到Vue实例中
@@ -116,12 +132,21 @@ class Store {
     options.plugins.forEach(plugin => plugin(this))
   }
 
+  _withCommitting(fn) {
+    let committing = this._committing
+    this._committing = true // 函数调用前 标识_committing为true
+    fn()
+    this._committing = committing // 恢复原值
+  }
+
   subscribe(fn) {
     this._subscribers.push(fn)
   }
 
   replaceState(newState) {
-    this._vm._data.$$state = newState
+    this._withCommitting(() => {
+      this._vm._data.$$state = newState
+    })
   }
 
   commit = (type, payload) => {
