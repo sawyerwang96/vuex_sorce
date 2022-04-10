@@ -1,9 +1,25 @@
 import Vue from 'vue'
-import Vuex from '../vuex/index'
+import Vuex from 'vuex'
+
+function presists(store) {
+  let local = localStorage.getItem('VUEX:STATE')
+
+  if (local) {
+    store.replaceState(JSON.parse(local))
+  }
+
+  store.subscribe((mutation, state) => {
+    localStorage.setItem('VUEX:STATE', JSON.stringify(state))
+  })
+}
+
 
 Vue.use(Vuex)
 
 export default new Vuex.Store({
+  plugins: [
+    presists
+  ],
   state: {
     name: 'wsy',
     age: 18,

@@ -3,6 +3,11 @@ import ModuleCollection from './module/module-collection'
 import { forEach } from './util'
 let Vue
 
+function getNestedState(store, path) {
+  return path.reduce((newState, current) => {
+    return newState[current]
+  }, store.state)
+}
 
 function installModule(store, rootState, path, module) {
    // 注册事件时 需要注册对应的命名空间中 path就是所有的路径 根据path算出一个空间来
@@ -34,7 +39,13 @@ function installModule(store, rootState, path, module) {
       store._mutations[namespace + type] = []
     }
     store._mutations[namespace + type].push((payload) => {
-      mutation.call(store, module.state, payload)
+      // 内部可能会替换状态 如果一折使用module.state 就有可能老的状态
+      // mutation.call(store, module.state, payload)
+
+      mutation.call(store, getNestedState(store, path), payload)
+      
+      // 调用订阅的事件
+      store._subscribers.forEach(sub => sub({ mutation, type }, store.state))
     })
   })
 
@@ -96,10 +107,21 @@ class Store {
     this._mutations = {} // 存放所有模块中的mutations
     this._actions = {} // 存放所有模块中的actions
     this._wrappedGetters = {} // 存放所有模块中的getters
+    this._subscribers = []
     installModule(this, state, [], this._modules.root)
     console.log(state);
     // 将状态加入到Vue实例中
     resetStoreVm(this, state)
+
+    options.plugins.forEach(plugin => plugin(this))
+  }
+
+  subscribe(fn) {
+    this._subscribers.push(fn)
+  }
+
+  replaceState(newState) {
+    this._vm._data.$$state = newState
   }
 
   commit = (type, payload) => {

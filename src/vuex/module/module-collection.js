@@ -26,7 +26,7 @@ export default class ModuleCollection {
       }, this.root)
 
       // parent._children[path[path.length - 1]] = newModule
-      parent.addChildren(path[path.length - 1], newModule)
+      parent.addChild(path[path.length - 1], newModule)
     }
 
     if (rootModule.modules) {
